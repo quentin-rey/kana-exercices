@@ -1,0 +1,104 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    overflow: hidden;
+    /* Empêche le défilement si nécessaire */
+}
+
+.quiz-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.kana-display {
+    font-size: 8em;
+    margin-bottom: 20px;
+    width: 300px;
+    height: 300px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #ffffff;
+    transition: background-color 0.3s;
+}
+
+.kana-display.correct {
+    background-color: #d4edda;
+}
+
+.kana-display.incorrect {
+    background-color: #f8d7da;
+}
+
+.options {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    /* Ajoute un espace de 20px entre les boutons */
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.option {
+    font-size: 1.5em;
+    padding: 10px 20px;
+    cursor: pointer;
+    background-color: #ffffff;
+    border: 2px solid #000000;
+    border-radius: 5px;
+    width: 100px;
+    /* Définir une largeur fixe pour tous les boutons */
+    text-align: center;
+    transition: background-color 0.3s;
+}
+
+.option:hover {
+    background-color: #dddddd;
+}
+
+.option.disabled {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.notification {
+    font-size: 1.2em;
+    padding: 8px;
+    border-radius: 5px;
+    display: none;
+    position: absolute;
+    /* Utilisation de la position absolue */
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: -50px;
+    /* Positionné en bas du conteneur */
+    z-index: 10;
+    /* Assure que la notification est au-dessus du contenu */
+}
+
+.notification.correct {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.notification.incorrect {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+footer {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    font-size: 0.8em;
+    opacity: 0.15;
+}
