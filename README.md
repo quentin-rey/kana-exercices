@@ -5,7 +5,7 @@ The **Kana Exercices** application is designed to help users practice recognizin
 ## Features
 
 - **Interactive Practice:** Test your knowledge of Japanese kana.
-- **User-Friendly Interface:** Simple and intuitive design for ease 
+- **User-Friendly Interface:** Simple and intuitive design for ease.
 
 ## Demo
 
