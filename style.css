@@ -7,20 +7,20 @@ body {
     font-family: Arial, sans-serif;
     background-color: #f0f0f0;
     overflow: hidden;
-    /* Empêche le défilement si nécessaire */
 }
 
 .quiz-container {
     display: flex;
-    justify-content: center;
-    align-items: center;
     flex-direction: column;
+    align-items: center;
+    padding: 20px;
 }
 
 .kana-display {
     font-size: 8em;
     margin-bottom: 40px;
-    width: 300px;
+    width: 100%;
+    max-width: 300px;
     height: 300px;
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -43,20 +43,18 @@ body {
     display: flex;
     justify-content: center;
     gap: 20px;
-    /* Ajoute un espace de 20px entre les boutons */
     margin-bottom: 20px;
-    position: relative;
+    flex-wrap: wrap;
 }
 
 .option {
     font-size: 2em;
-    padding: 10px 10px;
+    padding: 10px;
     cursor: pointer;
     background-color: #ffffff;
     border: 2px solid #000000;
     border-radius: 5px;
     width: 100px;
-    /* Définir une largeur fixe pour tous les boutons */
     text-align: center;
     transition: background-color 0.3s;
 }
@@ -76,13 +74,10 @@ body {
     border-radius: 5px;
     display: none;
     position: absolute;
-    /* Utilisation de la position absolue */
     left: 50%;
     transform: translateX(-50%);
     bottom: -50px;
-    /* Positionné en bas du conteneur */
     z-index: 10;
-    /* Assure que la notification est au-dessus du contenu */
 }
 
 .notification.correct {
@@ -101,4 +96,28 @@ footer {
     right: 10px;
     font-size: 0.8em;
     opacity: 0.15;
+}
+
+@media (max-width: 600px) {
+    .kana-display {
+        font-size: 4em;
+        width: 80%;
+        height: 200px;
+    }
+
+    .option {
+        font-size: 1.5em;
+        padding: 8px 5px;
+        width: 80px;
+    }
+
+    .options {
+        gap: 10px;
+    }
+}
+
+@media (max-width: 400px) {
+    .option {
+        width: 45%;
+    }
 }
