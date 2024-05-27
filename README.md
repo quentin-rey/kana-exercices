@@ -1,5 +1,7 @@
 # Kana Exercises
 
+![logo](logo.png)
+
 The **Kana Exercices** application is designed to help users practice recognizing Japanese kana characters (hiragana and katakana). They are presented with random characters and need to input the correct transcription. The application provides immediate feedback on each response, aiding in the memorization and mastery of kana characters.
 
 ## Features
