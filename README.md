@@ -7,6 +7,8 @@ A simple web application for learning Japanese kana (hiragana and katakana).
 - **Interactive Practice:** Test your knowledge of Japanese kana.
 - **User-Friendly Interface:** Simple and intuitive design for ease of use.
 
+The "Kana Exercices" application is designed to help users practice recognizing Japanese kana characters (hiragana and katakana). They are presented with random characters and need to input the correct transcription. The application provides immediate feedback on each response, aiding in the memorization and mastery of kana characters.
+
 ## Demo
 
 You can try the application [here](https://quentin-rey.github.io/kana-exercices/).
@@ -30,7 +32,6 @@ You can try the application [here](https://quentin-rey.github.io/kana-exercices/
 ## Usage
 
 - Open the application.
-- Choose between hiragana and katakana.
 - Start the exercise and input your answers.
 - Receive instant feedback.
 
