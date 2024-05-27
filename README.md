@@ -1,5 +1,3 @@
-# Kana Exercises
-
 <div align="center">
 ![logo](logo.png)s
 </div>
