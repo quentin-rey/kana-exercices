@@ -8,8 +8,14 @@ The **Kana Exercices** application is designed to help users practice recognizin
 
 ## Features
 
-- **Interactive Practice:** Test your knowledge of Japanese kana.
-- **User-Friendly Interface:** Simple and intuitive design for ease.
+- **Two quiz modes:** multiple choice (QCM) or type the romaji yourself.
+- **Alphabet & category filters:** practice hiragana, katakana, dakuten, handakuten and combinations independently.
+- **Adaptive practice:** kana you get wrong more often resurface more frequently (lightweight spaced repetition).
+- **60-second sprint mode:** race against the clock and beat your personal best.
+- **Score tracking:** current score, streak, and best streak, saved locally.
+- **Dark mode** with automatic system preference detection.
+- **Installable PWA:** works offline once installed.
+- **Keyboard shortcuts:** answer QCM questions with keys 1-4.
 
 ## Demo
 
@@ -34,8 +40,9 @@ You can try the application [here](https://quentin-rey.github.io/kana-exercices/
 ## Usage
 
 - Open the application.
-- Start the exercise and input your answers.
-- Receive instant feedback.
+- Pick QCM or Saisie (typing) mode, and the alphabets/categories you want to practice, from the settings (⚙️) panel.
+- Answer each question and get instant feedback.
+- Try a 60-second sprint to challenge yourself against your best score.
 
 ## License
 

@@ -5,24 +5,146 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kana Exercices</title>
+    <meta name="description" content="Entraîne-toi à reconnaître les hiragana et katakana japonais.">
+    <meta name="theme-color" content="#4f6bed">
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/x-icon" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
-    <div class="quiz-container">
-        <div id="kana-display" class="kana-display"></div>
-        <div class="options">
-            <button class="option" onclick="checkAnswer(this)"></button>
-            <button class="option" onclick="checkAnswer(this)"></button>
-            <button class="option" onclick="checkAnswer(this)"></button>
-            <button class="option" onclick="checkAnswer(this)"></button>
-            <div id="notification" class="notification"></div>
+    <header class="topbar">
+        <div class="brand">
+            <img src="logo.png" alt="" class="brand-logo">
+            <span class="brand-name">Kana Exercices</span>
         </div>
-    </div>
-    <footer>Coded with the help of ChatGPT 4o</footer>
-</body>
+        <div class="topbar-actions">
+            <a class="icon-button" href="https://github.com/quentin-rey/kana-exercices" target="_blank"
+                rel="noopener noreferrer" aria-label="Voir le code source sur GitHub">
+                <svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
+                        0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13
+                        -.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07
+                        -1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82
+                        a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15
+                        0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
+                </svg>
+            </a>
+            <button id="settings-toggle" class="icon-button" type="button" aria-label="Ouvrir les réglages">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"></path>
+                </svg>
+            </button>
+            <button id="theme-toggle" class="icon-button" type="button" aria-label="Basculer le thème sombre">🌙</button>
+        </div>
+    </header>
 
-<script src="script.js"></script>
+    <dialog id="settings-panel" class="settings-panel">
+        <div class="settings-header">
+            <h2>Réglages</h2>
+            <button id="settings-close" class="dialog-close" type="button" aria-label="Fermer les réglages">✕</button>
+        </div>
+
+        <section class="settings-section">
+            <h3>Mode de jeu</h3>
+            <div class="segmented" role="radiogroup" aria-label="Mode de jeu">
+                <label class="segmented-option">
+                    <input type="radio" name="quizMode" value="qcm" checked>
+                    <span>QCM</span>
+                </label>
+                <label class="segmented-option">
+                    <input type="radio" name="quizMode" value="type">
+                    <span>Saisie</span>
+                </label>
+            </div>
+            <p class="settings-hint">QCM : choisis parmi 4 réponses. Saisie : tape le romaji au clavier.</p>
+        </section>
+
+        <section class="settings-section">
+            <h3>Alphabets</h3>
+            <div class="checkbox-grid">
+                <label><input type="checkbox" name="kanaType" value="hiragana" checked> Hiragana</label>
+                <label><input type="checkbox" name="kanaType" value="katakana" checked> Katakana</label>
+            </div>
+        </section>
+
+        <section class="settings-section">
+            <h3>Catégories</h3>
+            <div class="checkbox-grid">
+                <label><input type="checkbox" name="kanaCategory" value="base" checked> Base</label>
+                <label><input type="checkbox" name="kanaCategory" value="dakuten" checked> Dakuten (゛)</label>
+                <label><input type="checkbox" name="kanaCategory" value="handakuten" checked> Handakuten (゜)</label>
+                <label><input type="checkbox" name="kanaCategory" value="combinations" checked> Combinaisons</label>
+            </div>
+            <p id="settings-warning" class="settings-warning" hidden>Sélectionne au moins un alphabet et une catégorie.</p>
+        </section>
+
+        <section class="settings-section">
+            <h3>Progression</h3>
+            <p class="settings-hint">
+                Les kana que tu rates le plus souvent reviennent plus fréquemment.
+                <span id="stats-progress-text">0 kana suivis.</span>
+            </p>
+            <button id="reset-stats" class="ghost-button" type="button">Réinitialiser ma progression</button>
+        </section>
+    </dialog>
+
+    <dialog id="sprint-result" class="settings-panel sprint-result">
+        <div class="settings-header">
+            <h2>Sprint terminé !</h2>
+            <button id="sprint-result-close" class="dialog-close" type="button" aria-label="Fermer">✕</button>
+        </div>
+        <p class="sprint-result-score">Score : <strong id="sprint-final-score">0</strong></p>
+        <p id="sprint-result-message" class="settings-hint"></p>
+        <div class="sprint-result-actions">
+            <button id="sprint-replay" class="pill-button" type="button">Rejouer un sprint</button>
+        </div>
+    </dialog>
+
+    <main class="quiz-container">
+        <div id="score-board" class="score-board">
+            <span class="score-item">Score<strong id="score-value">0</strong></span>
+            <span class="score-item">Série<strong id="streak-value">0</strong></span>
+            <span class="score-item">Record<strong id="best-streak-value">0</strong></span>
+        </div>
+
+        <div id="sprint-bar" class="score-board" hidden>
+            <span class="score-item sprint-time-item">Temps<strong id="sprint-time-value">60</strong></span>
+            <span class="score-item">Score sprint<strong id="sprint-score-value">0</strong></span>
+        </div>
+
+        <div id="kana-display" class="kana-display" aria-live="polite"></div>
+
+        <div id="options" class="options">
+            <button class="option" data-index="0"></button>
+            <button class="option" data-index="1"></button>
+            <button class="option" data-index="2"></button>
+            <button class="option" data-index="3"></button>
+        </div>
+
+        <form id="type-answer" class="type-answer" hidden autocomplete="off">
+            <input id="type-input" class="type-input" type="text" inputmode="latin" placeholder="Tape le romaji…"
+                aria-label="Ta réponse en romaji">
+            <button class="pill-button" type="submit">Valider</button>
+        </form>
+
+        <p id="hint" class="hint">Astuce : utilise les touches 1 à 4 pour répondre</p>
+
+        <div id="sprint-launcher" class="sprint-launcher">
+            <button id="start-sprint" class="pill-button" type="button">⏱️ Lancer un sprint de 60 s</button>
+            <span class="settings-stat">Meilleur sprint : <strong id="best-sprint-value">0</strong></span>
+        </div>
+    </main>
+
+    <div id="toast" class="toast" hidden></div>
+
+    <script src="script.js"></script>
+</body>
 
 </html>

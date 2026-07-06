@@ -229,17 +229,119 @@ const kanaTable = {
     }
 };
 
-const kanaTypes = ["hiragana", "katakana"];
-const kanaCategories = ["base", "dakuten", "handakuten", "combinations"];
+const ALL_KANA_TYPES = ["hiragana", "katakana"];
+const ALL_KANA_CATEGORIES = ["base", "dakuten", "handakuten", "combinations"];
+const STORAGE_KEYS = {
+    theme: "kana-exercices:theme",
+    settings: "kana-exercices:settings",
+    bestStreak: "kana-exercices:best-streak",
+    bestSprint: "kana-exercices:best-sprint",
+    stats: "kana-exercices:kana-stats"
+};
+const SPRINT_DURATION = 60;
+
 let timeoutId = null;
+let score = 0;
+let streak = 0;
+let bestStreak = Number(localStorage.getItem(STORAGE_KEYS.bestStreak)) || 0;
+let currentQuestion = null;
+let sprint = { active: false, score: 0, secondsLeft: SPRINT_DURATION, intervalId: null };
 
 function getRandomInt(max) {
     return Math.floor(Math.random() * max);
 }
 
-function getRandomOptions(correctRomaji, kanaType) {
+function loadSettings() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.settings));
+        if (
+            saved &&
+            Array.isArray(saved.kanaTypes) &&
+            Array.isArray(saved.kanaCategories) &&
+            saved.kanaTypes.length > 0 &&
+            saved.kanaCategories.length > 0
+        ) {
+            return {
+                kanaTypes: saved.kanaTypes,
+                kanaCategories: saved.kanaCategories,
+                mode: saved.mode === "type" ? "type" : "qcm"
+            };
+        }
+    } catch (e) {
+        // Ignore corrupted settings and fall back to defaults.
+    }
+    return { kanaTypes: [...ALL_KANA_TYPES], kanaCategories: [...ALL_KANA_CATEGORIES], mode: "qcm" };
+}
+
+function saveSettings(settings) {
+    localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(settings));
+}
+
+let activeSettings = loadSettings();
+
+function loadStats() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.stats));
+        if (saved && typeof saved === "object") return saved;
+    } catch (e) {
+        // Ignore corrupted stats.
+    }
+    return {};
+}
+
+let kanaStats = loadStats();
+
+function saveStats() {
+    localStorage.setItem(STORAGE_KEYS.stats, JSON.stringify(kanaStats));
+}
+
+function recordAnswer(key, isCorrect) {
+    const entry = kanaStats[key] || { correct: 0, wrong: 0 };
+    if (isCorrect) {
+        entry.correct += 1;
+    } else {
+        entry.wrong += 1;
+    }
+    kanaStats[key] = entry;
+    saveStats();
+}
+
+// Builds the pool of eligible kana for the active alphabet/category filters.
+function buildPool(kanaTypes, kanaCategories) {
+    const pool = [];
+    kanaTypes.forEach((kanaType) => {
+        kanaCategories.forEach((category) => {
+            kanaTable[kanaType][category].forEach(({ kana, romaji }) => {
+                pool.push({ key: `${kanaType}:${category}:${kana}`, kana, romaji, kanaType, category });
+            });
+        });
+    });
+    return pool;
+}
+
+// Kana missed more often (relative to how often they've since been gotten right)
+// get a higher weight, so they resurface more frequently — a lightweight spaced-repetition effect.
+function pickWeighted(pool) {
+    const weights = pool.map((entry) => {
+        const stat = kanaStats[entry.key];
+        if (!stat) return 1.4;
+        return 1 + (stat.wrong * 2) / (stat.correct + 1);
+    });
+    const total = weights.reduce((sum, w) => sum + w, 0);
+    let roll = Math.random() * total;
+    for (let i = 0; i < pool.length; i++) {
+        roll -= weights[i];
+        if (roll <= 0) return pool[i];
+    }
+    return pool[pool.length - 1];
+}
+
+function getRandomOptions(correctRomaji, kanaType, kanaCategories) {
     const options = new Set([correctRomaji]);
-    while (options.size < 4) {
+    let attempts = 0;
+    const maxAttempts = 200;
+    while (options.size < 4 && attempts < maxAttempts) {
+        attempts += 1;
         const randomCategory = kanaCategories[getRandomInt(kanaCategories.length)];
         const kanaList = kanaTable[kanaType][randomCategory];
         const randomRomaji = kanaList[getRandomInt(kanaList.length)].romaji;
@@ -251,29 +353,78 @@ function getRandomOptions(correctRomaji, kanaType) {
 }
 
 function displayNewQuestion() {
-    const randomKanaType = kanaTypes[getRandomInt(kanaTypes.length)];
-    const randomCategory = kanaCategories[getRandomInt(kanaCategories.length)];
-    const kanaList = kanaTable[randomKanaType][randomCategory];
-    const randomIndex = getRandomInt(kanaList.length);
-    const selectedKana = kanaList[randomIndex];
+    const { kanaTypes, kanaCategories, mode } = activeSettings;
+    const pool = buildPool(kanaTypes, kanaCategories);
+    const selected = pickWeighted(pool);
+    const correctRomaji =
+        selected.kanaType === "katakana" ? selected.romaji.toUpperCase() : selected.romaji;
+    currentQuestion = { ...selected, correctRomaji };
 
     const kanaDisplay = document.getElementById("kana-display");
-    kanaDisplay.innerText = selectedKana.kana;
-    kanaDisplay.classList.remove("correct", "incorrect");
+    kanaDisplay.innerText = selected.kana;
+    kanaDisplay.classList.remove("correct", "incorrect", "enter");
+    // Force reflow so the "enter" animation replays on every new question.
+    void kanaDisplay.offsetWidth;
+    kanaDisplay.classList.add("enter");
 
-    const correctRomaji =
-        randomKanaType === "katakana"
-            ? selectedKana.romaji.toUpperCase()
-            : selectedKana.romaji;
-    const options = getRandomOptions(correctRomaji, randomKanaType);
-    const buttons = document.querySelectorAll(".option");
+    if (mode === "type") {
+        const input = document.getElementById("type-input");
+        input.value = "";
+        input.disabled = false;
+        input.classList.remove("correct", "incorrect");
+        input.focus();
+    } else {
+        const options = getRandomOptions(correctRomaji, selected.kanaType, kanaCategories);
+        const buttons = document.querySelectorAll(".option");
+        buttons.forEach((button, index) => {
+            button.innerText = options[index] ?? "";
+            button.dataset.correct = options[index] === correctRomaji;
+            button.disabled = false;
+            button.classList.remove("disabled", "correct", "incorrect");
+        });
+    }
+}
 
-    buttons.forEach((button, index) => {
-        button.innerText = options[index];
-        button.dataset.correct = options[index] === correctRomaji;
-        button.disabled = false;
-        button.classList.remove("disabled");
-    });
+function updateScoreBoard() {
+    document.getElementById("score-value").innerText = score;
+    document.getElementById("streak-value").innerText = streak;
+    document.getElementById("best-streak-value").innerText = bestStreak;
+}
+
+function updateBestSprintDisplay() {
+    const best = Number(localStorage.getItem(STORAGE_KEYS.bestSprint)) || 0;
+    document.getElementById("best-sprint-value").innerText = best;
+}
+
+function updateStatsProgressText() {
+    const el = document.getElementById("stats-progress-text");
+    el.innerText = `${Object.keys(kanaStats).length} kana suivis.`;
+}
+
+function registerResult(isCorrect) {
+    if (currentQuestion) {
+        recordAnswer(currentQuestion.key, isCorrect);
+    }
+
+    if (sprint.active) {
+        if (isCorrect) {
+            sprint.score += 1;
+            updateSprintBoard();
+        }
+        return;
+    }
+
+    if (isCorrect) {
+        score += 1;
+        streak += 1;
+        if (streak > bestStreak) {
+            bestStreak = streak;
+            localStorage.setItem(STORAGE_KEYS.bestStreak, String(bestStreak));
+        }
+    } else {
+        streak = 0;
+    }
+    updateScoreBoard();
 }
 
 function checkAnswer(button) {
@@ -282,22 +433,257 @@ function checkAnswer(button) {
 
     clearTimeout(timeoutId); // Annule le délai précédent
 
-    if (button.dataset.correct === "true") {
+    buttons.forEach((btn) => {
+        btn.disabled = true;
+        btn.classList.add("disabled");
+    });
+
+    const isCorrect = button.dataset.correct === "true";
+    registerResult(isCorrect);
+
+    if (isCorrect) {
         kanaDisplay.classList.add("correct");
         kanaDisplay.classList.remove("incorrect");
-        buttons.forEach((btn) => {
-            btn.disabled = true;
-            btn.classList.add("disabled");
-        });
-        timeoutId = setTimeout(displayNewQuestion, 1000);
+        button.classList.add("correct");
+        timeoutId = setTimeout(displayNewQuestion, sprint.active ? 400 : 900);
     } else {
         kanaDisplay.classList.add("incorrect");
         kanaDisplay.classList.remove("correct");
-        timeoutId = setTimeout(() => {
-            kanaDisplay.classList.remove("incorrect");
-        }, 1000); // Le délai avant que le fond ne redevienne normal
+        button.classList.add("incorrect");
+        const correctButton = [...buttons].find((btn) => btn.dataset.correct === "true");
+        correctButton?.classList.add("correct");
+        timeoutId = setTimeout(displayNewQuestion, sprint.active ? 700 : 1300);
     }
 }
 
-// Initialize the first question
-document.addEventListener("DOMContentLoaded", displayNewQuestion);
+function checkTypedAnswer(rawValue) {
+    const input = document.getElementById("type-input");
+    const kanaDisplay = document.getElementById("kana-display");
+    if (!currentQuestion || input.disabled) return;
+
+    clearTimeout(timeoutId);
+    input.disabled = true;
+
+    const isCorrect = rawValue.trim().toLowerCase() === currentQuestion.correctRomaji.toLowerCase();
+    registerResult(isCorrect);
+
+    if (isCorrect) {
+        kanaDisplay.classList.add("correct");
+        kanaDisplay.classList.remove("incorrect");
+        input.classList.add("correct");
+        timeoutId = setTimeout(displayNewQuestion, sprint.active ? 400 : 900);
+    } else {
+        kanaDisplay.classList.add("incorrect");
+        kanaDisplay.classList.remove("correct");
+        input.classList.add("incorrect");
+        input.value = currentQuestion.correctRomaji;
+        timeoutId = setTimeout(displayNewQuestion, sprint.active ? 900 : 1500);
+    }
+}
+
+function initOptionButtons() {
+    document.querySelectorAll(".option").forEach((button) => {
+        button.addEventListener("click", () => checkAnswer(button));
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (activeSettings.mode !== "qcm") return;
+        const index = Number(event.key) - 1;
+        if (index >= 0 && index < 4) {
+            const button = document.querySelector(`.option[data-index="${index}"]`);
+            if (button && !button.disabled) {
+                checkAnswer(button);
+            }
+        }
+    });
+}
+
+function initTypeAnswer() {
+    document.getElementById("type-answer").addEventListener("submit", (event) => {
+        event.preventDefault();
+        checkTypedAnswer(document.getElementById("type-input").value);
+    });
+}
+
+function applyModeUI(mode) {
+    document.getElementById("options").hidden = mode !== "qcm";
+    document.getElementById("type-answer").hidden = mode !== "type";
+    document.getElementById("hint").innerText =
+        mode === "qcm"
+            ? "Astuce : utilise les touches 1 à 4 pour répondre"
+            : "Astuce : appuie sur Entrée pour valider";
+}
+
+function initTheme() {
+    const toggleButton = document.getElementById("theme-toggle");
+    const savedTheme = localStorage.getItem(STORAGE_KEYS.theme);
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const theme = savedTheme || (prefersDark ? "dark" : "light");
+    applyTheme(theme);
+
+    toggleButton.addEventListener("click", () => {
+        const current = document.documentElement.getAttribute("data-theme") || "light";
+        const next = current === "dark" ? "light" : "dark";
+        applyTheme(next);
+        localStorage.setItem(STORAGE_KEYS.theme, next);
+    });
+}
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    document.getElementById("theme-toggle").innerText = theme === "dark" ? "☀️" : "🌙";
+}
+
+function initSettingsPanel() {
+    const panel = document.getElementById("settings-panel");
+    const toggleButton = document.getElementById("settings-toggle");
+    const closeButton = document.getElementById("settings-close");
+    const warning = document.getElementById("settings-warning");
+    const typeInputs = document.querySelectorAll('input[name="kanaType"]');
+    const categoryInputs = document.querySelectorAll('input[name="kanaCategory"]');
+    const modeInputs = document.querySelectorAll('input[name="quizMode"]');
+
+    typeInputs.forEach((input) => {
+        input.checked = activeSettings.kanaTypes.includes(input.value);
+    });
+    categoryInputs.forEach((input) => {
+        input.checked = activeSettings.kanaCategories.includes(input.value);
+    });
+    modeInputs.forEach((input) => {
+        input.checked = input.value === activeSettings.mode;
+    });
+    applyModeUI(activeSettings.mode);
+
+    toggleButton.addEventListener("click", () => panel.showModal());
+    closeButton.addEventListener("click", () => panel.close());
+    panel.addEventListener("click", (event) => {
+        if (event.target === panel) panel.close();
+    });
+
+    function handleChange() {
+        const kanaTypes = [...typeInputs].filter((i) => i.checked).map((i) => i.value);
+        const kanaCategories = [...categoryInputs]
+            .filter((i) => i.checked)
+            .map((i) => i.value);
+        const mode = [...modeInputs].find((i) => i.checked)?.value === "type" ? "type" : "qcm";
+
+        if (kanaTypes.length === 0 || kanaCategories.length === 0) {
+            warning.hidden = false;
+            return;
+        }
+
+        warning.hidden = true;
+        activeSettings = { kanaTypes, kanaCategories, mode };
+        saveSettings(activeSettings);
+        applyModeUI(mode);
+        clearTimeout(timeoutId);
+        displayNewQuestion();
+    }
+
+    typeInputs.forEach((input) => input.addEventListener("change", handleChange));
+    categoryInputs.forEach((input) => input.addEventListener("change", handleChange));
+    modeInputs.forEach((input) => input.addEventListener("change", handleChange));
+
+    document.getElementById("reset-stats").addEventListener("click", () => {
+        kanaStats = {};
+        saveStats();
+        updateStatsProgressText();
+        showToast("Progression réinitialisée.");
+    });
+
+    updateStatsProgressText();
+}
+
+function updateSprintBoard() {
+    document.getElementById("sprint-time-value").innerText = sprint.secondsLeft;
+    document.getElementById("sprint-score-value").innerText = sprint.score;
+}
+
+function startSprint() {
+    document.getElementById("settings-panel").close();
+    document.getElementById("sprint-result").close();
+
+    sprint.active = true;
+    sprint.score = 0;
+    sprint.secondsLeft = SPRINT_DURATION;
+
+    document.getElementById("score-board").hidden = true;
+    document.getElementById("sprint-launcher").hidden = true;
+    document.getElementById("sprint-bar").hidden = false;
+    updateSprintBoard();
+
+    clearInterval(sprint.intervalId);
+    sprint.intervalId = setInterval(() => {
+        sprint.secondsLeft -= 1;
+        updateSprintBoard();
+        if (sprint.secondsLeft <= 0) {
+            endSprint();
+        }
+    }, 1000);
+
+    clearTimeout(timeoutId);
+    displayNewQuestion();
+}
+
+function endSprint() {
+    clearInterval(sprint.intervalId);
+    sprint.active = false;
+
+    document.getElementById("score-board").hidden = false;
+    document.getElementById("sprint-launcher").hidden = false;
+    document.getElementById("sprint-bar").hidden = true;
+
+    const best = Number(localStorage.getItem(STORAGE_KEYS.bestSprint)) || 0;
+    const isNewBest = sprint.score > best;
+    if (isNewBest) {
+        localStorage.setItem(STORAGE_KEYS.bestSprint, String(sprint.score));
+    }
+    updateBestSprintDisplay();
+
+    document.getElementById("sprint-final-score").innerText = sprint.score;
+    document.getElementById("sprint-result-message").innerText = isNewBest
+        ? "Nouveau record personnel !"
+        : `Ton record est de ${Math.max(best, sprint.score)}.`;
+    document.getElementById("sprint-result").showModal();
+
+    clearTimeout(timeoutId);
+    displayNewQuestion();
+}
+
+function initSprint() {
+    document.getElementById("start-sprint").addEventListener("click", startSprint);
+    document.getElementById("sprint-replay").addEventListener("click", startSprint);
+    document.getElementById("sprint-result-close").addEventListener("click", () => {
+        document.getElementById("sprint-result").close();
+    });
+    updateBestSprintDisplay();
+}
+
+function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.innerText = message;
+    toast.hidden = false;
+    clearTimeout(showToast.timeoutId);
+    showToast.timeoutId = setTimeout(() => {
+        toast.hidden = true;
+    }, 2200);
+}
+
+function initServiceWorker() {
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+            navigator.serviceWorker.register("service-worker.js").catch(() => {});
+        });
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    initTheme();
+    initSettingsPanel();
+    initOptionButtons();
+    initTypeAnswer();
+    initSprint();
+    initServiceWorker();
+    updateScoreBoard();
+    displayNewQuestion();
+});
